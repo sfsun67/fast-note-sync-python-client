@@ -263,7 +263,44 @@ client.set_token("Bearer eyJhbGciOi...")
 # curl -H "Authorization: Bearer eyJhbGciOi..." https://your-server/api/user/info
 ```
 
-### 2. `pathHash` / `contentHash` 不要在客户端计算
+### 2. Python 3.9 + macOS 自带 SSL 库连接 HTTPS 服务端失败
+
+**报错信息**：
+
+```
+ssl.SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)
+requests.exceptions.SSLError: HTTPSConnectionPool(host='...', port=443): Max retries exceeded
+```
+
+**原因**：macOS 自带的 Python 3.9.6 链接的是系统 LibreSSL 2.8.3，不支持服务端使用的现代 TLS 协议（TLS 1.3 或较新的加密套件）。即使设置 `session.verify = False` 也无法解决，因为问题出在 SSL 握手阶段，不是证书验证。
+
+**确认方法**：
+
+```bash
+python3 -c "import ssl; print(ssl.OPENSSL_VERSION)"
+# 如果输出类似 LibreSSL 2.8.3 就是这个问题
+# 需要 OpenSSL 1.1.1+ 或 LibreSSL 3.3+
+```
+
+**解决方案**：使用 Python 3.10+（自带新版 OpenSSL）。推荐通过 conda、pyenv 或 Homebrew 安装：
+
+```bash
+# conda
+conda create -n pyclient python=3.11
+conda activate pyclient
+pip install requests
+
+# Homebrew
+brew install python@3.11
+
+# pyenv
+pyenv install 3.11
+pyenv local 3.11
+```
+
+**注意**：这个问题仅在连接 HTTPS 服务端时出现。如果你的服务端使用 HTTP（如本地部署 `http://localhost:9000`），任何 Python 版本都不受影响。
+
+### 3. `pathHash` / `contentHash` 不要在客户端计算
 
 文档提到这两个字段使用 "32 位哈希算法（FNV-1a 或类似）"，但描述不绝对。服务端会自动生成，客户端传空即可。**强行在客户端计算可能因算法不一致导致数据冲突。**
 
