@@ -47,12 +47,17 @@ class FastNoteClient:
     # ------------------------------------------------------------------
 
     def set_token(self, token: str) -> None:
-        """外部注入 token，无需调用 login()。"""
+        """外部注入 token，无需调用 login()。
+
+        自动添加 Bearer 前缀（如果未包含）。
+        """
+        if token and not token.startswith("Bearer "):
+            token = f"Bearer {token}"
         self.session.headers["Authorization"] = token
 
     @property
     def token(self) -> str | None:
-        """当前使用的 token。"""
+        """当前使用的 token（含 Bearer 前缀）。"""
         return self.session.headers.get("Authorization")
 
     # ------------------------------------------------------------------

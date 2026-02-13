@@ -244,6 +244,29 @@ except FastNoteAPIError as e:
 | 408 | `UserExistsError` | 用户已存在 |
 | 其他 | `FastNoteAPIError` | 通用错误基类 |
 
+## 常见踩坑
+
+### 1. Authorization 头必须带 `Bearer` 前缀
+
+REST API 文档写的是 `Authorization: {token}`，但服务端实际要求 **`Authorization: Bearer {token}`**。如果你直接把裸 token 放在 `Authorization` 头里，所有需要认证的接口都会返回 `307 - Not logged in`。
+
+本客户端已处理：`login()` 和 `set_token()` 会自动添加 `Bearer ` 前缀，你不需要手动拼接。
+
+```python
+# 正确 — 传入裸 token，客户端自动加 Bearer
+client.set_token("eyJhbGciOi...")
+
+# 也正确 — 已经带了 Bearer 前缀，不会重复添加
+client.set_token("Bearer eyJhbGciOi...")
+
+# 如果你用 curl 或其他 HTTP 工具直接调用，必须手动加：
+# curl -H "Authorization: Bearer eyJhbGciOi..." https://your-server/api/user/info
+```
+
+### 2. `pathHash` / `contentHash` 不要在客户端计算
+
+文档提到这两个字段使用 "32 位哈希算法（FNV-1a 或类似）"，但描述不绝对。服务端会自动生成，客户端传空即可。**强行在客户端计算可能因算法不一致导致数据冲突。**
+
 ## 配置项
 
 ```python
